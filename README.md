@@ -32,3 +32,8 @@ We have to provide our own custom login page. Check [here](https://www.youtube.c
 
 ### Solution #2 - do nothing
 As we use single page application, the login page(from backend) is not required, we can leave it alone, just use `POST /login` endpoint and don't use `GET /login` at all.
+
+## CORS
+- 注意127.0.0.1 和 localhost 不是一个domain.
+- CORS的文档： https://docs.spring.io/spring-security/reference/servlet/integrations/cors.html
+- declare a bean named `corsConfigurationSource` and configure it in `http.cors()`
