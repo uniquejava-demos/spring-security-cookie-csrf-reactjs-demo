@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .accessDeniedHandler(new MyAccessDeniedHandler())
         );
 
-        http.formLogin().permitAll();
+        http.formLogin(login -> login.loginPage("/login").permitAll());
 
         return http.build();
     }
