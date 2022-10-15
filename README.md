@@ -4,12 +4,12 @@
 
 ## Check point
 
-1. Check we can invoke spring security formLogin endpoint via axios
-2. Check axios will write JSESSIONID back to browser cookie automatically
-3. Check axios will write csrf-token to browser automatically
-4. Custom login page( SURPRISE! )
+- [x] Check we can invoke spring security formLogin endpoint via axios
+- [ ] Check axios will write JSESSIONID back to browser cookie automatically
+- [ ] Check axios will write csrf-token to browser automatically
+- [ ] Custom login page( SURPRISE! )
 
-## 碰到的坑
+## formLogin的坑
 
 为什么直接访问 http://localhost:8080/login 返回404?
 
@@ -42,13 +42,28 @@ that.
 As we use single page application, the login page(from backend) is not required, we can leave it alone, just
 use `POST /login` endpoint and don't use `GET /login` at all.
 
-## CORS
+## CORS的坑
 
-- 注意127.0.0.1 和 localhost 不是一个domain.
-- CORS的文档： https://docs.spring.io/spring-security/reference/servlet/integrations/cors.html
-- declare a bean named `corsConfigurationSource` and configure it in `http.cors()`
+CORS 必须放在spring security filterChain之前。
 
-## Axios 的 content-type 随参数动态变化
+Spring Framework provides first class support for CORS. CORS must be processed before Spring Security because the
+pre-flight request will not contain any cookies (i.e. the JSESSIONID). If the request does not contain any cookies and
+Spring Security is first, the request will determine the user is not authenticated (since there are no cookies in the
+request) and reject it.
+
+- 不使用security， 使用 `@CrossDomain` 在Controller类/或方法上 设置CORS
+- 不使用security， 可以在 `WebMvcConfigurer#CorsRegistry` 全局设置CORS
+- 使用Spring Security, 声明名为`CorsConfig#corsConfigurationSource`的Bean，并在`SecurityConfig#http.cors(withDefaults())`
+  全局设置CORS
+- ‼️127.0.0.1 和 localhost 是 **不同的cors origin**
+- CorsConfig使用通配符配置多个origin， `config.setAllowedOriginPatterns(List.of("http://127.0.0.1:[*]"));`
+- CORS的文档(without spring
+  security): https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-cors
+- CORS的文档(with spring security): https://docs.spring.io/spring-security/reference/servlet/integrations/cors.html
+
+## Axios 的 坑
+
+Axios的content-type 随data参数的类型动态变化。
 
 When sending POST requests (also PUT and PATCH requests) with Axios, note how we pass a normal Javascript object as
 data. Axios converts this Javascript data to JSON by default. It also sets the “content-type” header to
@@ -72,4 +87,20 @@ content-type自动变为`'application/x-www-form-urlencoded`， 如果向下面�
 当data时FormData类型时， 可以使用`axios.postForm(..)`方法
 
 结论: 使用axios时， 绝大多数情况下都不要自己折腾 content-type.
+
+## Cookie 的坑
+
+- 目的是验证 checkpoint #2
+- cookie domain不看port， 也就是说 不同port相同domain的应用 会共享cookie。
+- 也就是说: `localhost:3000` 和 `localhost:8080` 是 **相同的cookie domain**, **不同的cors origin**
+
+可以看到axios的response header中已经包含了 `Set-Cookie`
+
+但是浏览器阻止跨域设置cookie， 见下图中的popup
+
+![set-cookie blocked](doc/assets/images/set-cookie-blocked.png)
+
+解决办法: https://stackoverflow.com/a/64202472/2497876
+
+
 
