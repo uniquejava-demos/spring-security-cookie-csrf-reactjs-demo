@@ -13,7 +13,7 @@
 
 <p>1. server端Accept `application/json`</p>
 
-<form id="form1" action="http://localhost:8080/admin/user" method="post">
+<form id="form1" action="http://localhost:8080/admin/user" method="post" enctype="application/json">
     <input name="username" type="hidden" value="evil-user">
     <input name="password" type="hidden" value="evil-password">
     <input type="submit" value="submit not work(/admin/user)"/>

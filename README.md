@@ -1,27 +1,30 @@
 ## Environment
 
 - Java 17
+- Spring boot 2.7.4
+- React 18.2.0
 
 ## Check point
 
 - [x] Check we can invoke spring security formLogin endpoint via axios
 - [x] Check axios will write JSESSIONID back to browser cookie automatically
-- [ ] Check axios will write csrf-token to browser automatically
+- [x] Check axios will write csrf-token to browser automatically
 - [x] Custom login page( SURPRISE! )
 
 ## CSRF测试
 
 ### csrf attack
 
+- 打开根项目中的SecurityConfig, 加上 `http.csrf().disable()`， 禁用csrf防护。
 - 启动根项目，端口8080
-- 启动frontend目录下的vite项目(good.com）, 访问http://localhost:5173/, 确保admin处于登录状态
+- 启动frontend目录下的vite项目(good.com）, 访问http://localhost:5173/, 点击Login按钮，确保admin处于登录状态
 - 启动evil目录下的项目，端口8888， 修改/etc/hosts, 加入evil.com 127.0.0.1
-- 访问http://evil.com:8888, 观察Console: evil user created
+- 访问http://evil.com:8888, 观察Console: evil user created。
 
 ### protect csrf
 
 - 打开根项目中的SecurityConfig, 注释掉 `http.csrf().disable()`
-- 重启根项目，访问http://evil.com:8888, 观察Console:
+- 重启根项目，访问http://evil.com:8888, 观察Console: Invalid CSRF token found for http://localhost:8080/admin/users
 
 ## formLogin的坑
 
@@ -148,18 +151,19 @@ content-type自动变为`'application/x-www-form-urlencoded`， 如果向下面�
 
 ### 1. 首先form必须使用application/json
 
+![form submit not work for json](doc/assets/images/evil-form-submit.png)
+
 但是html form的enctype属性无法设置为`application/json`（即使设置了也会被忽略）
 
-```
-Resolved [org.springframework.web.HttpMediaTypeNotSupportedException: Content type 'application/x-www-form-urlencoded;charset=UTF-8' not supported]
-```
+> Resolved org.springframework.web.HttpMediaTypeNotSupportedException:
+> Content type 'application/x-www-form-urlencoded;charset=UTF-8' not supported
 
 ```bash
 curl -i -X POST -d "username=xx&passwod=yy" http://localhost:8080/admin/user
 HTTP/1.1 415
 Accept: application/json, application/*+json
 
-{"timestamp":"2022-10-15T03:38:29.709+00:00","status":415,"error":"Unsupported Media Type","path":"/admin/user"}%
+{"timestamp":"2022-10-15T03:38:29.709+00:00","status":415,"error":"Unsupported Media Type","path":"/admin/user"}
 ```
 
 通过js脚本? https://github.com/keithhackbarth/submitAsJSON, 我尝试了不好用!
@@ -191,6 +195,44 @@ Accept: application/json, application/*+json
 
 这是因为good.com的默认response header中包含 `X-Frame-Options: DENY`
 
+### 3. workaround
+
+为了测试CSRF, 在server端将API的输入参数类型从默认的 `application/json` 改为有csrf隐患的 `x-www-form-urlencoded`.
+
+见下图: 注意, 除了添加consumes， 同时要去掉 `@RequestBody` 这个注解。
+
+![test csrf workaround](doc/assets/images/json-to-form-urlencoded.png)
+
+## CSRF Protection
+
+### 过程
+
+**x-xsrf-token** is added to the request header for ajax requests.
+
+1. Popular libraries like angular and axios, automatically get value of this header from xsrf-token cookie and put it in
+   every request header.
+2. To use it, we should create a cookie named xsrf-token in backend, then our front end framework that uses angular or
+   axios will use it automatically.
+
+see: https://stackoverflow.com/a/56144709/2497876
+
+### cyper实战
+
+- 后端: SecurityConfig.java加上如下配置. `csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())`
+- 前端: 什么也不用做， axios会自动处理
+
+![csrf config](doc/assets/images/csrf-config.png)
+
+通过axios请求/login时，
+![set csrf cookie](doc/assets/images/set-xsrf-token-upon-login.png)
+
+通过axios请求/admin/users时
+![set xsrf in header](doc/assets/images/axios-set-xsrf-token-in-header.png)
+
+通过evil.com请求/admin/users时
+![evil blocked by csrf](doc/assets/images/evil-blocked-by-csrf.png)
+
+至此，完成所有4个checkpoint的验证。
 
 
 

@@ -15,6 +15,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -59,9 +60,11 @@ public class SecurityConfig {
         // by default uses a Bean by the name of corsConfigurationSource
         http.cors(withDefaults());
 
-//        http.csrf(csrf -> csrf.ignoringAntMatchers("/login"));
+        http.csrf(csrf -> csrf
+                .ignoringAntMatchers("/login")
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
 
-        http.csrf().disable();
+        // http.csrf().disable();
 
         return http.build();
     }
