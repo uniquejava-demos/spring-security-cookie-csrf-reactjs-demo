@@ -11,11 +11,13 @@
 
 ## formLogin的坑
 
+给定如下Spring Security的config代码:
+![404](doc/assets/images/formlogin-config.png)
+
 为什么直接访问 http://localhost:8080/login 返回404?
+![404](doc/assets/images/loginpage-404.png)
 
 结论：在exceptionHandling中设置 authenticationEntryPoint 会阻止 spring security生成login页面， 所以报404
-
-![404](doc/assets/images/LoginPage-404.png)
 
 The seemingly irrelevant part `http.exceptionHandling` and ` http.formLogin` are correlated.
 
@@ -54,18 +56,19 @@ pre-flight request will not contain any cookies (i.e. the JSESSIONID). If the re
 Spring Security is first, the request will determine the user is not authenticated (since there are no cookies in the
 request) and reject it.
 
-- 不使用security， 使用 `@CrossDomain` 在Controller类/或方法上 设置CORS
-- 不使用security， 可以在 `WebMvcConfigurer#CorsRegistry` 全局设置CORS
-- 使用Spring Security, 声明名为`CorsConfig#corsConfigurationSource`的Bean，并在`SecurityConfig#http.cors(withDefaults())`
-  全局设置CORS
+- 非spring security项目， 使用 `@CrossDomain` 在Controller类/或方法上 设置CORS
+- 非spring security项目， 可以在 `WebMvcConfigurer#CorsRegistry` 全局设置CORS
+- spring security项目, declare名为`CorsConfig#corsConfigurationSource`
+  的Bean，并在`SecurityConfig#http.cors(withDefaults())` 全局设置CORS
 - CorsConfig使用通配符配置多个origin， `config.setAllowedOriginPatterns(List.of("http://127.0.0.1:[*]"));`
 - CORS的文档(without spring
   security): https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-cors
 - CORS的文档(with spring security): https://docs.spring.io/spring-security/reference/servlet/integrations/cors.html
 
-## Axios 的 坑
+## Axios 1.x 的 坑
 
-- Axios的content-type 随data参数的类型动态变化
+- package.json中的axios突然变成1.x 很不习惯，原来 axios 在2022.10从万年的 0.x 一跃变成1.x， 带来诸多breaking change
+- Axios的content-type 现在随data参数的类型动态变化
 - 使用axios时， 绝大多数情况下都不要自己折腾 content-type.
 
 When sending POST requests (also PUT and PATCH requests) with Axios, note how we pass a normal Javascript object as
@@ -97,17 +100,43 @@ content-type自动变为`'application/x-www-form-urlencoded`， 如果向下面�
 - cookie domain不看port， 也就是说 不同port相同domain的应用 会共享cookie。
 - 也就是说: `localhost:3000` 和 `localhost:8080` 是 **相同的cookie domain**, **不同的cors origin**
 
-可以看到axios的response header中已经包含了 `Set-Cookie`
+可以看到当用 http://127.0.0.1:5173 访问前端时， axios的response header中已经包含了 `Set-Cookie`
 
-但是浏览器阻止跨域设置cookie， 见下图中的popup
+但是浏览器阻止跨域设置cookie， 见下图中的popup. (原因是localhost和127.0.0.1不是相同的domain）
 
 ![set-cookie blocked](doc/assets/images/set-cookie-blocked.png)
 
-最简单的办法是使用 http://localhost:5173/ 访问前端（这样localhost:8080和localhost:5173就是相同的cookie domain啦)
+最简单的办法是使用 http://localhost:5173/ 访问前端（这样localhost:8080和localhost:
+5173就是相同的cookie domain啦)
 
 ![set-cookie done](doc/assets/images/set-cookie-done.png)
 
 另外可以参考: https://stackoverflow.com/a/64202472/2497876
+
+## CSRF
+
+`Cross-Origin Resource Sharing` and  `Cross-Site Request Forgery`
+
+这个cross让我心生疑问: 如果合理的设置cors，不允许跨域请求是不是就可以阻止csrf? 答案是否定的。
+
+直接上图（https://stackoverflow.com/questions/19793695/does-a-proper-cors-setup-prevent-csrf-attack）
+
+![csrf](doc/assets/images/csrf-so.png)
+
+假设你用admin登录了good.com, 你打开了某个evil.com钓鱼站点， 该站点使用了一个隐藏的form表单通过post请求创建了一个新用户。
+然后他就可以用这个偷偷摸摸创建的新用户登录你的站点了。 这是因为CORS设置只影响通过js发起的ajax请求，CORS会对preflight做检查和限制，
+,但是evil.com不是通过js请求发起创建用户请求的，该请求将会被正常执行。
+
+验证checkpoint 1时 `GET /login`直接报csrf的错误，
+所以我一开始就设置了`http.csrf(csrf -> csrf.ignoringAntMatchers("/login"));`, 原因很简单，GET请求不太需要csrf.
+
+
+
+
+
+
+
+
 
 
 
