@@ -5,13 +5,15 @@
 ## Check point
 
 - [x] Check we can invoke spring security formLogin endpoint via axios
-- [ ] Check axios will write JSESSIONID back to browser cookie automatically
+- [x] Check axios will write JSESSIONID back to browser cookie automatically
 - [ ] Check axios will write csrf-token to browser automatically
 - [ ] Custom login page( SURPRISE! )
 
 ## formLogin的坑
 
 为什么直接访问 http://localhost:8080/login 返回404?
+
+结论：在exceptionHandling中设置 authenticationEntryPoint 会阻止 spring security生成login页面， 所以报404
 
 ![404](doc/assets/images/LoginPage-404.png)
 
@@ -44,7 +46,8 @@ use `POST /login` endpoint and don't use `GET /login` at all.
 
 ## CORS的坑
 
-CORS 必须放在spring security filterChain之前。
+- CorsFilter 必须放在spring security之前， 不然preflight请求会返回403。
+- ‼️127.0.0.1 和 localhost 是 **不同的cors origin**
 
 Spring Framework provides first class support for CORS. CORS must be processed before Spring Security because the
 pre-flight request will not contain any cookies (i.e. the JSESSIONID). If the request does not contain any cookies and
@@ -55,7 +58,6 @@ request) and reject it.
 - 不使用security， 可以在 `WebMvcConfigurer#CorsRegistry` 全局设置CORS
 - 使用Spring Security, 声明名为`CorsConfig#corsConfigurationSource`的Bean，并在`SecurityConfig#http.cors(withDefaults())`
   全局设置CORS
-- ‼️127.0.0.1 和 localhost 是 **不同的cors origin**
 - CorsConfig使用通配符配置多个origin， `config.setAllowedOriginPatterns(List.of("http://127.0.0.1:[*]"));`
 - CORS的文档(without spring
   security): https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-cors
@@ -63,7 +65,8 @@ request) and reject it.
 
 ## Axios 的 坑
 
-Axios的content-type 随data参数的类型动态变化。
+- Axios的content-type 随data参数的类型动态变化
+- 使用axios时， 绝大多数情况下都不要自己折腾 content-type.
 
 When sending POST requests (also PUT and PATCH requests) with Axios, note how we pass a normal Javascript object as
 data. Axios converts this Javascript data to JSON by default. It also sets the “content-type” header to
@@ -100,7 +103,11 @@ content-type自动变为`'application/x-www-form-urlencoded`， 如果向下面�
 
 ![set-cookie blocked](doc/assets/images/set-cookie-blocked.png)
 
-解决办法: https://stackoverflow.com/a/64202472/2497876
+最简单的办法是使用 http://localhost:5173/ 访问前端（这样localhost:8080和localhost:5173就是相同的cookie domain啦)
+
+![set-cookie done](doc/assets/images/set-cookie-done.png)
+
+另外可以参考: https://stackoverflow.com/a/64202472/2497876
 
 
 
