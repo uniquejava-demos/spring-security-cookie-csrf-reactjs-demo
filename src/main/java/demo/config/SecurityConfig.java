@@ -42,7 +42,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeRequests(auth -> auth
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
         );
 
         http.exceptionHandling((ex) -> ex
@@ -59,7 +59,9 @@ public class SecurityConfig {
         // by default uses a Bean by the name of corsConfigurationSource
         http.cors(withDefaults());
 
-        http.csrf(csrf -> csrf.ignoringAntMatchers("/login"));
+//        http.csrf(csrf -> csrf.ignoringAntMatchers("/login"));
+
+        http.csrf().disable();
 
         return http.build();
     }

