@@ -11,7 +11,7 @@ function App() {
     params.append('password', 'password')
 
     const config = {
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      withCredentials: true,
     }
 
     const login = async () => {
